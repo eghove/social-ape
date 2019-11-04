@@ -5,8 +5,8 @@ admin.initializeApp();
 
 const express = require("express");
 const app = express();
-const dotenv = require('dotenv');
-dotenv.config()
+const dotenv = require("dotenv");
+dotenv.config();
 
 
 
@@ -16,6 +16,42 @@ firebase.initializeApp(firebaseConfig);
 
 const db = admin.firestore();
 
+// for protecting the routes
+const FBAuth = (req, res, next) => {
+  let idToken;
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer ")
+  ) {
+    idToken = req.headers.authorization.split("Bearer ")[1];
+  } else {
+    console.error("No token found");
+    return res.status(403).json({ error: "Unauthorized" });
+  }
+
+  admin
+    .auth()
+    .verifyIdToken(idToken)
+    .then(decodedToken => {
+      req.user = decodedToken;
+      console.log(decodedToken);
+      return db
+        .collection("users")
+        .where("userID", "==", req.user.uid)
+        .limit(1)
+        .get();
+    })
+    .then(data => {
+      req.user.handle = data.doc[0].data().handle;
+      return next();
+    })
+    .catch(err => {
+      console.error('Error while verifying token', err);
+      return res.status(403).json(err);
+    })
+};
+
+// get screams
 app.get("/screams", (req, res) => {
   db.collection("screams")
     .orderBy("createdAt", "desc")
@@ -35,13 +71,14 @@ app.get("/screams", (req, res) => {
     .catch(err => console.error(err));
 });
 
-app.post("/scream", (req, res) => {
+// post a scream
+app.post("/scream", FBAuth, (req, res) => {
   if (req.method !== "POST") {
     return res.status(400).json({ error: "Method not allowed" });
   }
   const newScream = {
     body: req.body.body,
-    userHandle: req.body.userHandle,
+    userHandle: req.user.handle,
     createdAt: new Date().toISOString()
   };
 
@@ -57,16 +94,16 @@ app.post("/scream", (req, res) => {
 });
 
 // building out a helper functions
-const isEmpty = (string) => {
-  if(string.trim() === '') return true;
+const isEmpty = string => {
+  if (string.trim() === "") return true;
   else return false;
 };
 
-const isEmail = (email) => {
-  const regEx = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
-  if(email.match(regEx)) return true;
+const isEmail = email => {
+  const regEx = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+  if (email.match(regEx)) return true;
   else return false;
-}
+};
 // signup route
 app.post("/signup", (req, res) => {
   const newUser = {
@@ -78,22 +115,22 @@ app.post("/signup", (req, res) => {
 
   let errors = {};
 
-  if(isEmpty(newUser.email)) {
-    errors.email = 'Must not be empty!'
+  if (isEmpty(newUser.email)) {
+    errors.email = "Must not be empty!";
   } else if (!isEmail(newUser.email)) {
-    errors.email = "Must be valid email address"
+    errors.email = "Must be valid email address";
   }
 
-  if(isEmpty(newUser.password)) {
-    errors.password = "Must not be empty"
+  if (isEmpty(newUser.password)) {
+    errors.password = "Must not be empty";
   }
   if (newUser.password !== newUser.confrimPassword) {
-    errors.confrimPassword = "Passwords must match"
+    errors.confrimPassword = "Passwords must match";
   }
-  if(isEmpty(newUser.handle)) {
-    errors.handle = "Must not be empty"
+  if (isEmpty(newUser.handle)) {
+    errors.handle = "Must not be empty";
   }
-  if(Object.keys(errors).length > 0) {
+  if (Object.keys(errors).length > 0) {
     return res.status(400).json(errors);
   }
 
@@ -135,6 +172,37 @@ app.post("/signup", (req, res) => {
       } else {
         return res.status(500).json({ error: err.code });
       }
+    });
+});
+
+// login route
+app.post("/login", (req, res) => {
+  const user = {
+    email: req.body.email,
+    password: req.body.password
+  };
+  let errors = {};
+  if (isEmpty(user.email)) errors.email = "Must not be empty";
+  if (isEmpty(user.password)) errors.password = "Must not be empty";
+
+  if (Object.keys(errors).length > 0) return res.status(400).json(errors);
+
+  firebase
+    .auth()
+    .signInWithEmailAndPassword(user.email, user.password)
+    .then(data => {
+      return data.user.getIdToken();
+    })
+    .then(token => {
+      return res.json({ token });
+    })
+    .catch(err => {
+      console.error(err);
+      if (err.code === "auth/wrong-password") {
+        return res
+          .status(403)
+          .json({ general: "Wrong credentials. Please try again" });
+      } else return res.status(500).json({ error: err.code });
     });
 });
 
