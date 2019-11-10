@@ -66,3 +66,6 @@ node_modules/
 
 # for keys.json
 keys.json
+
+# for config
+config.js
