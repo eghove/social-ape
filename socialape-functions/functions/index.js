@@ -8,7 +8,16 @@ const app = express();
 const dotenv = require("dotenv");
 dotenv.config();
 
-
+const firebaseConfig = {
+  apiKey: "AIzaSyBmbV_f3Sy6zIdF4EZ1h0_Q2bj7GrXVKGI",
+  authDomain: "social-ape-be016.firebaseapp.com",
+  databaseURL: "https://social-ape-be016.firebaseio.com",
+  projectId: "social-ape-be016",
+  storageBucket: "social-ape-be016.appspot.com",
+  messagingSenderId: "646540284203",
+  appId: "1:646540284203:web:4f499890870a988fbf756e",
+  measurementId: "G-1FXD1KS9HZ"
+};
 
 // Initialize Firebase
 const firebase = require("firebase");
@@ -34,21 +43,32 @@ const FBAuth = (req, res, next) => {
     .verifyIdToken(idToken)
     .then(decodedToken => {
       req.user = decodedToken;
-      console.log(decodedToken);
       return db
         .collection("users")
-        .where("userID", "==", req.user.uid)
+        .where("userId", "==", req.user.uid)
         .limit(1)
         .get();
     })
+    // .then(snapshot => {
+    //   if (snapshot.empty) {
+    //     console.log("No matching documents.");
+    //     return next();
+    //   } else {
+    //     snapshot.forEach(doc => {
+    //       let temp = doc.data().handle;
+    //       req.user.handle = temp;
+    //       return next();
+    //     });
+    //   }
+    // })
     .then(data => {
-      req.user.handle = data.doc[0].data().handle;
+      req.user.handle = data.docs[0].data().handle;
       return next();
     })
     .catch(err => {
-      console.error('Error while verifying token', err);
+      console.error("Error while verifying token", err);
       return res.status(403).json(err);
-    })
+    });
 };
 
 // get screams
@@ -109,7 +129,7 @@ app.post("/signup", (req, res) => {
   const newUser = {
     email: req.body.email,
     password: req.body.password,
-    confrimPassword: req.body.confrimPassword,
+    confirmPassword: req.body.confirmPassword,
     handle: req.body.handle
   };
 
@@ -124,8 +144,8 @@ app.post("/signup", (req, res) => {
   if (isEmpty(newUser.password)) {
     errors.password = "Must not be empty";
   }
-  if (newUser.password !== newUser.confrimPassword) {
-    errors.confrimPassword = "Passwords must match";
+  if (newUser.password !== newUser.confirmPassword) {
+    errors.confirmPassword = "Passwords must match";
   }
   if (isEmpty(newUser.handle)) {
     errors.handle = "Must not be empty";
