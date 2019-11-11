@@ -1,4 +1,4 @@
-const { admin } = require('./admin');
+const { admin, db } = require('./admin');
 
 // for protecting the routes
 module.exports = (req, res, next) => {
