@@ -7,7 +7,7 @@ const express = require("express");
 const app = express();
 const FBAuth = require('./util/FBAuth');
 const { getAllScreams, postOneScream } = require('./handlers/screams');
-const { signUp, login, uploadImage } = require('./handlers/users');
+const { signUp, login, uploadImage, addUserDetails } = require('./handlers/users');
 
 const dotenv = require("dotenv");
 dotenv.config();
@@ -28,7 +28,9 @@ app.post("/signup", signUp);
 // login route
 app.post("/login", login);
 // image route
-app.post('/user/image', FBAuth, uploadImage)
+app.post('/user/image', FBAuth, uploadImage);
+// route to add user details
+app.post('/user', FBAuth, addUserDetails)
 
 
 
