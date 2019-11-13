@@ -18,7 +18,9 @@ const {
   login,
   uploadImage,
   addUserDetails,
-  getAuthenticatedUser
+  getAuthenticatedUser,
+  getUserDetails,
+  markNotificationsRead
 } = require("./handlers/users");
 
 const dotenv = require("dotenv");
@@ -51,6 +53,10 @@ app.post("/user/image", FBAuth, uploadImage);
 app.post("/user", FBAuth, addUserDetails);
 // get credentials route
 app.get("/user", FBAuth, getAuthenticatedUser);
+// other user details
+app.get("/user/:handle", getUserDetails);
+// route to update notifications
+app.post('/notifications', FBAuth, markNotificationsRead);
 
 exports.api = functions.https.onRequest(app);
 

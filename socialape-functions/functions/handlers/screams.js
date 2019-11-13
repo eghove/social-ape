@@ -29,7 +29,7 @@ exports.postOneScream = (req, res) => {
     userImage: req.user.imageUrl,
     createdAt: new Date().toISOString(),
     likeCount: 0,
-    commentCound: 0
+    commentCount: 0
   };
 
   db.collection("screams")
