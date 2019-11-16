@@ -1,12 +1,29 @@
 import React, { Component } from "react";
-import Grid from '@material-ui/core/Grid'
+import axios from "axios";
+import Grid from "@material-ui/core/Grid";
 
-export class home extends Component {
+class home extends Component {
+  state = {
+    screams: null
+  };
+  componentDidMount() {
+    axios
+      .get("/screams")
+      .then(res => {
+        this.setState({
+          screams: res.data
+        });
+      })
+      .catch(err => console.log(err));
+  }
   render() {
+    let recentScreamMarkup = this.state.screams ? (
+      this.state.screams.map(scream => <p>{scream.body}</p>)
+    ) : <p>Loading</p>
     return (
-      <Grid container spacing={16}>
+      <Grid container spacing={2}>
         <Grid container item sm={8} xs={12}>
-          <p>Content...</p>
+          {recentScreamMarkup}
         </Grid>
         <Grid container item sm={4} xs={12}>
           <p>Profile...</p>
