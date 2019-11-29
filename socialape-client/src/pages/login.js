@@ -42,9 +42,9 @@ class login extends Component {
     event.preventDefault();
     this.setState({ loading: true });
     const userData = {
-      email: this.state.email,
-      password: this.state.password
-    };
+      email: String(this.state.email),
+      password: String(this.state.password)
+    }
     axios
       .post("/login", userData)
       .then(res => {
